@@ -1,0 +1,147 @@
+{
+	"dataSource": "trino",
+	"catalog": "tier1Catalog",
+	"schema": "mongodb.rms1",
+	"models": [
+		{
+			"name": "documents",
+			"refSql": "SELECT _id AS document_id, createdOn AS created_on, createdById AS created_by_id, modifiedOn AS modified_on, modifiedById AS modified_by_id, deletedOn AS deleted_on, deletedById AS deleted_by_id, isDeleted AS is_deleted, collectionId AS collection_id, isProcessDocument AS is_process_document, fields.\"NAME\".value AS name, fields.\"SUBJECT\".value AS subject, fields.\"SEQUENCENR\".value AS sequence_number, fields.\"PROCESSED\".value AS is_processed, fields.\"PROCESSEDDATE\".value AS processed_date FROM mongodb.rms1.documents",
+			"primaryKey": "_id",
+			"columns": [
+				{
+					"name": "id",
+					"type": "VARCHAR",
+					"expression": "_id",
+					"notNull": true,
+					"properties": {
+						"description": "the unique id of the document"
+					}
+				},
+				{
+					"name": "created_on",
+					"type": "TIMESTAMP",
+					"expression": "createdOn",
+					"notNull": true,
+					"properties": {
+						"description": "timestamp when the document was created"
+					}
+				},
+				{
+					"name": "created_by_id",
+					"type": "VARCHAR",
+					"expression": "createdById",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the user who created the document"
+					}
+				},
+				{
+					"name": "modified_on",
+					"type": "TIMESTAMP",
+					"expression": "modifiedOn",
+					"notNull": true,
+					"properties": {
+						"description": "timestamp when the document was last modified"
+					}
+				},
+				{
+					"name": "modified_by_id",
+					"type": "VARCHAR",
+					"expression": "modifiedById",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the user who last modified the document"
+					}
+				},
+				{
+					"name": "deleted_on",
+					"type": "TIMESTAMP",
+					"expression": "deletedOn",
+					"notNull": false,
+					"properties": {
+						"description": "timestamp when the document was soft deleted"
+					}
+				},
+				{
+					"name": "deleted_by_id",
+					"type": "VARCHAR",
+					"expression": "deletedById",
+					"notNull": false,
+					"properties": {
+						"description": "unique id of the user who soft deleted the document"
+					}
+				},
+				{
+					"name": "is_deleted",
+					"type": "BOOLEAN",
+					"expression": "isDeleted",
+					"notNull": true,
+					"properties": {
+						"description": "indicates whether the document is soft deleted or not"
+					}
+				},
+				{
+					"name": "collection_id",
+					"type": "VARCHAR",
+					"expression": "collectionId",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the collection where the document lives"
+					}
+				},
+				{
+					"name": "is_process_document",
+					"type": "BOOLEAN",
+					"expression": "isProcessDocument",
+					"notNull": true,
+					"properties": {
+						"description": "indicates whether the document is a process document or not"
+					}
+				},
+				{
+					"name": "name",
+					"type": "VARCHAR",
+					"notNull": true,
+					"properties": {
+						"description": "the name of the document"
+					}
+				},
+				{
+					"name": "subject",
+					"type": "VARCHAR",
+					"notNull": false,
+					"properties": {
+						"description": "the subject of the document"
+					}
+				},
+				{
+					"name": "sequence_number",
+					"type": "BIGINT",
+					"notNull": false,
+					"properties": {
+						"description": "the sequence number of the document"
+					}
+				},
+				{
+					"name": "is_processed",
+					"type": "BOOLEAN",
+					"notNull": false,
+					"properties": {
+						"description": "indicates whether the document has been processed or not"
+					}
+				},
+				{
+					"name": "processed_date",
+					"type": "TIMESTAMP(3)",
+					"notNull": false,
+					"properties": {
+						"description": "the date when the document was processed"
+					}
+				}
+			],
+			"properties": {
+				"description": "this model describes the schema of a document entity"
+			}
+		}
+	]
+}

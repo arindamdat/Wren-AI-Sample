@@ -1,0 +1,45 @@
+{
+	"dataSource": "trino",
+	"catalog": "mongodb",
+	"schema": "rms2",
+	"models": [
+		{
+			"name": "mongodb.rms2.users",
+			"tableReference": {
+				"catalog": "mongodb",
+				"schema": "rms2",
+				"table": "users"
+			},
+			"primaryKey": "_id",
+			"columns": [
+				{
+					"name": "id",
+					"type": "VARCHAR",
+					"expression": "_id",
+					"notNull": true,
+					"properties": {
+						"description": "the unique id of the user"
+					}
+				},
+				{
+					"name": "name",
+					"type": "VARCHAR",
+					"expression": "name",
+					"notNull": true,
+					"properties": {
+						"description": "the name of the user"
+					}
+				},
+				{
+					"name": "email",
+					"type": "VARCHAR",
+					"expression": "email",
+					"notNull": true,
+					"properties": {
+						"description": "the email of the user"
+					}
+				}
+			]
+		}
+	]
+}

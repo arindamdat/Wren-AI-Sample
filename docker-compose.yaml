@@ -1,0 +1,262 @@
+version: "3"
+
+volumes:
+  data:
+  mongodata:
+  mongodata2:
+  postgres_data:
+
+networks:
+  wren:
+    driver: bridge
+
+services:
+  bootstrap:
+    image: ghcr.io/canner/wren-bootstrap:${WREN_BOOTSTRAP_VERSION}
+    restart: on-failure
+    platform: ${PLATFORM}
+    environment:
+      DATA_PATH: /app/data
+    volumes:
+      - data:/app/data
+    command: /bin/sh /app/init.sh
+
+  wren-engine:
+    image: ghcr.io/canner/wren-engine:${WREN_ENGINE_VERSION}
+    restart: on-failure
+    platform: ${PLATFORM}
+    expose:
+      - ${WREN_ENGINE_PORT}
+      - ${WREN_ENGINE_SQL_PORT}
+    ports:
+      - ${ENGINE_FORWARD_PORT}:${WREN_ENGINE_PORT}
+      - ${ENGINE_SQL_FORWARD_PORT}:${WREN_ENGINE_SQL_PORT}
+    volumes:
+      - data:/usr/src/app/etc
+      - ${PROJECT_DIR}/data:/usr/src/app/data
+    networks:
+      - wren
+    depends_on:
+      - bootstrap
+
+  ibis-server:
+    image: ghcr.io/canner/wren-engine-ibis:${IBIS_SERVER_VERSION}
+    restart: on-failure
+    platform: ${PLATFORM}
+    expose:
+      - ${IBIS_SERVER_PORT}
+    environment:
+      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT}
+    volumes:
+      - ${LOCAL_STORAGE:-.}:/usr/src/app/data
+    ports:
+      - 8000:8000
+      - 8888:8888
+    networks:
+      - wren
+    depends_on:
+      - trino
+
+  wren-ai-service:
+    image: ghcr.io/canner/wren-ai-service:${WREN_AI_SERVICE_VERSION}
+    restart: on-failure
+    platform: ${PLATFORM}
+    expose:
+      - ${WREN_AI_SERVICE_PORT}
+    ports:
+      - ${AI_SERVICE_FORWARD_PORT}:${WREN_AI_SERVICE_PORT}
+    environment:
+      # sometimes the console won't show print messages,
+      # using PYTHONUNBUFFERED: 1 can fix this
+      PYTHONUNBUFFERED: 1
+      CONFIG_PATH: /app/config.yaml
+    env_file:
+      - ${PROJECT_DIR}/.env
+    volumes:
+      - ${PROJECT_DIR}/wren/config.yaml:/app/config.yaml:ro
+      - ${PROJECT_DIR}/data:/app/data:ro
+    networks:
+      - wren
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: on-failure
+    expose:
+      - 6333
+      - 6334
+    ports: 
+      - 6333:6333
+    volumes:
+      - data:/qdrant/storage
+    networks:
+      - wren
+
+  wren-ui:
+    image: ghcr.io/canner/wren-ui:${WREN_UI_VERSION}
+    restart: on-failure
+    platform: ${PLATFORM}
+    environment:
+      DB_TYPE: sqlite
+      # /app is the working directory in the container
+      SQLITE_FILE: /app/data/db.sqlite3
+      WREN_ENGINE_ENDPOINT: http://wren-engine:${WREN_ENGINE_PORT}
+      WREN_AI_ENDPOINT: http://wren-ai-service:${WREN_AI_SERVICE_PORT}
+      IBIS_SERVER_ENDPOINT: http://ibis-server:${IBIS_SERVER_PORT}
+      # this is for telemetry to know the model, i think ai-service might be able to provide a endpoint to get the information
+      GENERATION_MODEL: ${GENERATION_MODEL}
+      # telemetry
+      WREN_ENGINE_PORT: ${WREN_ENGINE_PORT}
+      WREN_AI_SERVICE_VERSION: ${WREN_AI_SERVICE_VERSION}
+      WREN_UI_VERSION: ${WREN_UI_VERSION}
+      WREN_ENGINE_VERSION: ${WREN_ENGINE_VERSION}
+      USER_UUID: ${USER_UUID}
+      POSTHOG_API_KEY: ${POSTHOG_API_KEY}
+      POSTHOG_HOST: ${POSTHOG_HOST}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED}
+      # client side
+      NEXT_PUBLIC_USER_UUID: ${USER_UUID}
+      NEXT_PUBLIC_POSTHOG_API_KEY: ${POSTHOG_API_KEY}
+      NEXT_PUBLIC_POSTHOG_HOST: ${POSTHOG_HOST}
+      NEXT_PUBLIC_TELEMETRY_ENABLED: ${TELEMETRY_ENABLED}
+      EXPERIMENTAL_ENGINE_RUST_VERSION: ${EXPERIMENTAL_ENGINE_RUST_VERSION}
+      # configs
+      WREN_PRODUCT_VERSION: ${WREN_PRODUCT_VERSION}
+    ports:
+      # HOST_PORT is the port you want to expose to the host machine
+      - ${HOST_PORT}:3000
+    volumes:
+      - ${PROJECT_DIR}/data:/app/data:rw
+    networks:
+      - wren
+    depends_on:
+      - wren-ai-service
+      - wren-engine
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog   
+    networks:
+      - wren   
+    depends_on:
+      - mongodb.data
+      - mongodb2.data
+      - postgres
+      - minio   
+  mongodb.data: 
+    image: mongo:8.2.3
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodata:/data/db   
+    networks:
+      - wren     
+  mongodb2.data: 
+    image: mongo:8.2.3
+    ports:
+      - 27018:27017
+    volumes:
+      - mongodata2:/data/db   
+    networks:
+      - wren 
+  postgres:
+    image: postgres:15-alpine
+    container_name: trino-metastore
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: iceberg_catalog
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wren
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@decos.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    ports:
+      - "8084:80" 
+    depends_on:
+      - postgres
+    networks:
+      - wren
+  minio:
+    image: minio/minio:latest
+    container_name: trino-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - wren
+  mc:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (mc alias set minio http://minio:9000 minioadmin minioadmin); do echo '...waiting for minio...'; sleep 1; done;
+      mc mb minio/warehouse;
+      exit 0;
+      "
+    networks:
+      - wren
+## -- Cube services deployed below --
+  cube:
+    image: cubejs/cube:latest
+    ports:
+      - "4000:4000"  # API & Playground Port
+      - 15432:15432 # CubeJS Pre-Aggregation or CubeStore Port
+    environment:
+      # Connection to the Internal Services
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
+      - CUBEJS_CUBESTORE_HOST=cubestore
+      - CUBEJS_CUBESTORE_PORT=3030
+      # Tell Cube to skip the UI Wizard and use these details
+      - CUBEJS_DB_TYPE=trino
+      - CUBEJS_DB_HOST=trino
+      - CUBEJS_DB_PORT=8080
+      - CUBEJS_DB_USER=admin
+      - CUBEJS_DB_PRESTO_CATALOG=iceberg  # Your exact Trino Catalog name
+      - CUBEJS_DB_NAME=reporting  # Your exact Trino Schema name
+      # Developer Mode (Enables the Playground UI at localhost:4000)
+      - CUBEJS_DEV_MODE=true
+      # Security (Change this in production!)
+      - CUBEJS_API_SECRET=mysupersecretapikey
+    # volumes:
+      # Mount your configuration and schema files into the container
+      # - ./cube:/cube/conf
+    depends_on:
+      - cubestore
+      - trino
+    networks:
+      - wren
+  # 3. Cube Store (For Pre-Aggregations and Query Acceleration)
+  cubestore:
+    image: cubejs/cubestore:latest
+    environment:
+      # - CUBESTORE_HTTP_PORT=3030
+      # - CUBESTORE_WORKER_PORT=3031
+      # - CUBESTORE_META_PORT=9999
+      - CUBESTORE_LOG_LEVEL=debug
+      # - CUBESTORE_SERVER_NAME=cubestore:9999
+      # - CUBESTORE_WORKERS=cubestore:9999
+      # 2. Add this to force it to run as a Router + Worker in one process
+      #- CUBESTORE_REMOTE_ROUTER_HTTP_PORT=3030
+    ports:
+      - "3030:3030"
+    volumes:
+      # Persist Cube Store data so pre-aggregations survive restarts
+      - ./.cubestore:/cube/.cubestore/
+    networks:
+      - wren
