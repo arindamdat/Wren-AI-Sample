@@ -1,0 +1,150 @@
+{
+	"dataSource": "trino",
+	"catalog": "mongodb",
+	"schema": "rms1",
+	"models": [
+		{
+			"name": "mongodb.rms1.documents",
+			"tableReference": {
+				"catalog": "mongodb",
+				"schema": "rms1",
+				"table": "documents"
+			},
+			"primaryKey": [
+				"_id"
+			],
+			"columns": [
+				{
+					"name": "id",
+					"type": "VARCHAR",
+					"expression": "_id",
+					"notNull": true,
+					"properties": {
+						"description": "the unique id of the document"
+					}
+				},
+				{
+					"name": "created_on",
+					"type": "TIMESTAMP",
+					"expression": "createdOn",
+					"notNull": true,
+					"properties": {
+						"description": "timestamp when the document was created"
+					}
+				},
+				{
+					"name": "created_by_id",
+					"type": "VARCHAR",
+					"expression": "createdById",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the user who created the document"
+					}
+				},
+				{
+					"name": "modified_on",
+					"type": "TIMESTAMP",
+					"expression": "modifiedOn",
+					"notNull": true,
+					"properties": {
+						"description": "timestamp when the document was last modified"
+					}
+				},
+				{
+					"name": "modified_by_id",
+					"type": "VARCHAR",
+					"expression": "modifiedById",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the user who last modified the document"
+					}
+				},
+				{
+					"name": "deleted_on",
+					"type": "TIMESTAMP",
+					"expression": "deletedOn",
+					"notNull": false,
+					"properties": {
+						"description": "timestamp when the document was soft deleted"
+					}
+				},
+				{
+					"name": "deleted_by_id",
+					"type": "VARCHAR",
+					"expression": "deletedById",
+					"notNull": false,
+					"properties": {
+						"description": "unique id of the user who soft deleted the document"
+					}
+				},
+				{
+					"name": "is_deleted",
+					"type": "BOOLEAN",
+					"expression": "isDeleted",
+					"notNull": true,
+					"properties": {
+						"description": "indicates whether the document is soft deleted or not"
+					}
+				},
+				{
+					"name": "version",
+					"type": "BIGINT",
+					"expression": "version",
+					"notNull": true,
+					"properties": {}
+				},
+				{
+					"name": "collection_id",
+					"type": "VARCHAR",
+					"expression": "collectionId",
+					"notNull": true,
+					"properties": {
+						"description": "unique id of the collection where the document lives"
+					}
+				},
+				{
+					"name": "is_process_document",
+					"type": "BOOLEAN",
+					"expression": "isProcessDocument",
+					"notNull": true,
+					"properties": {
+						"description": "indicates whether the document is a process document or not"
+					}
+				},
+				{
+					"name": "field_name",
+					"type": "VARCHAR",
+					"expression": "fields.NAME",
+					"notNull": false,
+					"properties": {
+						"semanticType": "text",
+						"description": "name of the document"
+					}
+				},
+				{
+					"name": "field_sequence_nr",
+					"type": "BIGINT",
+					"expression": "fields.SEQUENCENR",
+					"notNull": false,
+					"properties": {
+						"semanticType": "numeric",
+						"description": "sequence number of the document in its parent collection"
+					}
+				},
+				{
+					"name": "field_subject",
+					"type": "VARCHAR",
+					"expression": "fields.SUBJECT",
+					"notNull": false,
+					"properties": {
+						"semanticType": "text",
+						"description": "subject or description of the document"
+					}
+				}
+			],
+			"properties": {
+				"description": "this model describes the schema of a document entity"
+			}
+		}
+	]
+}
